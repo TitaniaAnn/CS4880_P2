@@ -8,7 +8,12 @@
       "Bash(gcc -Wall -Wextra -pedantic -std=c11 -g -o P2 P2.o parser.o tree.o lexer.o)",
       "Bash(./P2)",
       "Bash(./P2 -l)",
-      "Bash(echo \"\\(exit $?\\)\")"
+      "Bash(echo \"\\(exit $?\\)\")",
+      "Bash(gcc -Wall -Wextra -pedantic -std=c11 -g -c lexer.c -o lexer.o)",
+      "Bash(gcc -Wall -Wextra -pedantic -std=c11 -g -c tree.c -o tree.o)",
+      "Bash(gcc -Wall -Wextra -pedantic -std=c11 -g -c parser.c -o parser.o)",
+      "Bash(gcc -Wall -Wextra -pedantic -std=c11 -g -c P2.c -o P2.o)",
+      "Bash(./P2 test_good12)"
     ],
     "additionalDirectories": [
       "c:\\Users\\cynth\\Development\\CS-4880\\P2"
