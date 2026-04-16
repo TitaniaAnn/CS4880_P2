@@ -9,6 +9,9 @@
       "Bash(./P2)",
       "Bash(./P2 -l)",
       "Bash(echo \"\\(exit $?\\)\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\cynth\\Development\\CS-4880\\P2"
     ]
   }
 }
