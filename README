@@ -1,28 +1,61 @@
-P1 - Lexical Analyzer
+P2 - Recursive Descent Parser
 CS 4880 Compiler Design
 
 DESCRIPTION
-    Reads source code from a file or stdin and emits one line per token in
-    the format:
-        Group=<type> Instance=<value> Line=<n>
-    followed by a final EOFTk line.
+    Reads source code from a file or stdin, parses it according to the
+    course grammar, and prints the parse tree in preorder traversal.
+
+    Lex-only mode (-l flag) emits one line per token instead of the tree.
 
 BUILD
-    If make is available:
-        make
-        make clean
+    make
+    make clean
 
     Manual (gcc required):
-        gcc -Wall -Wextra -pedantic -std=c11 -g -c P1.c
         gcc -Wall -Wextra -pedantic -std=c11 -g -c lexer.c
-        gcc -Wall -Wextra -pedantic -std=c11 -g -o P1 P1.o lexer.o
+        gcc -Wall -Wextra -pedantic -std=c11 -g -c tree.c
+        gcc -Wall -Wextra -pedantic -std=c11 -g -c parser.c
+        gcc -Wall -Wextra -pedantic -std=c11 -g -c P2.c
+        gcc -Wall -Wextra -pedantic -std=c11 -g -o P2 P2.o parser.o tree.o lexer.o
 
 RUN
-    ./P1 basename        reads basename.ext
-    ./P1 < file.ext      reads from stdin
-    ./P1                 reads from stdin (type input, Ctrl+D to end)
+    ./P2 basename        reads basename.ext, prints parse tree
+    ./P2 < file.ext      reads from stdin
+    ./P2                 reads from stdin (type input, Ctrl+D to end)
 
-TOKEN TYPES
+    ./P2 -l basename     lex-only mode: prints tokens instead of parse tree
+    ./P2 -l < file.ext
+
+PARSE TREE FORMAT
+    Nodes are printed in preorder, indented two spaces per level.
+    Each line shows the nonterminal label followed by any semantic tokens:
+
+        ID:<name>:<line>     identifier
+        #:<value>:<line>     integer
+        Op:<sym>:<line>      operator or relational symbol
+
+    Syntactic tokens (keywords, brackets, colons, parentheses) are discarded.
+
+GRAMMAR
+    <program>    -> go <vars> <block> exit
+    <vars>       -> empty | int identifier = integer <varList> :
+    <varList>    -> identifier = integer <varList> | empty
+    <block>      -> { <vars> <stats> }
+    <stats>      -> <stat> <mStat>
+    <mStat>      -> empty | <stat> <mStat>
+    <stat>       -> <read> | <print> | <block> | <cond> | <loop> | <assign>
+    <read>       -> scan identifier :
+    <print>      -> output <exp> :
+    <cond>       -> cond [ identifier <relational> <exp> ] <stat>
+    <loop>       -> loop [ identifier <relational> <exp> ] <stat>
+    <assign>     -> set identifier = <exp> :
+    <relational> -> ?le | ?ge | ?lt | ?gt | ?ne | ?eq | = = | ;
+    <exp>        -> <M> ** <exp> | <M> // <exp> | <M>
+    <M>          -> <N> + <M> | <N>
+    <N>          -> <R> - <N> | - <N> | <R>
+    <R>          -> ( <exp> ) | identifier | integer
+
+TOKEN TYPES (lexer)
     IDTk      identifier: starts with 'x', followed by letters/digits/underscores, max 8 chars
     IntTk     integer: decimal digits only, max 8 digits
     KW_tk     keyword: go og loop int exit scan output cond then set func program
@@ -32,11 +65,33 @@ TOKEN TYPES
 
     Comments (@text@) are consumed silently and do not produce a token.
     Lexical errors print "LEXICAL ERROR: <detail> line <n>" to stderr and exit.
+    Syntax errors print "SYNTAX ERROR: expected <X>, got '<Y>' (line <n>)" and exit.
 
 EXAMPLE
-    Input file P1_test1.ext:
-        2
+    Input:
+        go
+        int x = 1 :
+        { scan x :
+          output x + 2 :
+        }
+        exit
 
     Output:
-        Group=IntTk Instance=2 Line=1
-        EOFTk
+        program
+          vars ID:x:2 #:1:2
+            varList
+          block
+            stats
+              stat
+                read ID:x:3
+              mStat
+                stat
+                  print
+                    exp
+                      M Op:+:4
+                        N
+                          R ID:x:4
+                        M
+                          N
+                            R #:2:4
+                mStat
