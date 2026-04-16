@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make P2)",
+      "Bash(gcc -Wall -Wextra -pedantic -std=c11 -g -c lexer.c)",
+      "Bash(gcc -Wall -Wextra -pedantic -std=c11 -g -c parser.c)",
+      "Bash(gcc -Wall -Wextra -pedantic -std=c11 -g -c P2.c)",
+      "Bash(gcc -Wall -Wextra -pedantic -std=c11 -g -o P2 P2.o parser.o tree.o lexer.o)",
+      "Bash(./P2)",
+      "Bash(./P2 -l)",
+      "Bash(echo \"\\(exit $?\\)\")"
+    ]
+  }
+}

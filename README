@@ -1,0 +1,42 @@
+P1 - Lexical Analyzer
+CS 4880 Compiler Design
+
+DESCRIPTION
+    Reads source code from a file or stdin and emits one line per token in
+    the format:
+        Group=<type> Instance=<value> Line=<n>
+    followed by a final EOFTk line.
+
+BUILD
+    If make is available:
+        make
+        make clean
+
+    Manual (gcc required):
+        gcc -Wall -Wextra -pedantic -std=c11 -g -c P1.c
+        gcc -Wall -Wextra -pedantic -std=c11 -g -c lexer.c
+        gcc -Wall -Wextra -pedantic -std=c11 -g -o P1 P1.o lexer.o
+
+RUN
+    ./P1 basename        reads basename.ext
+    ./P1 < file.ext      reads from stdin
+    ./P1                 reads from stdin (type input, Ctrl+D to end)
+
+TOKEN TYPES
+    IDTk      identifier: starts with 'x', followed by letters/digits/underscores, max 8 chars
+    IntTk     integer: decimal digits only, max 8 digits
+    KW_tk     keyword: go og loop int exit scan output cond then set func program
+    OpTk      multi-char operator: ?le ?ge ?lt ?gt ?ne ?eq ** //
+    OpDelTk   single-char operator or delimiter: + - : ; = ( ) { } [ ]
+    EOFTk     end of input
+
+    Comments (@text@) are consumed silently and do not produce a token.
+    Lexical errors print "LEXICAL ERROR: <detail> line <n>" to stderr and exit.
+
+EXAMPLE
+    Input file P1_test1.ext:
+        2
+
+    Output:
+        Group=IntTk Instance=2 Line=1
+        EOFTk
