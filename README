@@ -67,6 +67,16 @@ TOKEN TYPES (lexer)
     Lexical errors print "LEXICAL ERROR: <detail> line <n>" to stderr and exit.
     Syntax errors print "SYNTAX ERROR: expected <X>, got '<Y>' (line <n>)" and exit.
 
+AI USAGE
+    Claude Code (claude-sonnet-4-6) was used as a coding assistant during development.
+    AI assistance was used for:
+        - Debugging parser logic and tracing recursive descent errors
+        - Reviewing grammar rule implementations against the BNF spec
+        - Suggesting fixes for memory management and struct initialization
+        - Explaining C standard library behavior (e.g., strtol, fopen edge cases)
+    All design decisions, grammar interpretation, and final code were made by the student.
+    AI-generated suggestions were reviewed and modified as needed before use.
+
 EXAMPLE
     Input:
         go
