@@ -54,6 +54,15 @@ static int isOp(const char *op)
     return tk.id == OpTk && strcmp(tk.instance, op) == 0;
 }
 
+/* The six comparison operators that <relational> may use.  The lexer also
+   classifies ** and // as OpTk, so checking tk.id == OpTk alone is too
+   permissive — it would wrongly accept "x ** 0" as a relational. */
+static int isRelationalOp(void)
+{
+    return isOp("?le") || isOp("?ge") || isOp("?lt") ||
+           isOp("?gt") || isOp("?ne") || isOp("?eq");
+}
+
 static int isStatFirst(void)
 {
     return isKW("scan") || isKW("output") || isKW("cond") ||
@@ -237,7 +246,7 @@ static Node *assign(void)
 static Node *relational(void)
 {
     Node *n = newNode("relational");
-    if (tk.id == OpTk) {
+    if (isRelationalOp()) {
         addToken(n, tk);
         consume();
     } else if (isOpDel("=")) {
