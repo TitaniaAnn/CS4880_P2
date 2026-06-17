@@ -49,7 +49,7 @@ GRAMMAR
     <cond>       -> cond [ identifier <relational> <exp> ] <stat>
     <loop>       -> loop [ identifier <relational> <exp> ] <stat>
     <assign>     -> set identifier = <exp> :
-    <relational> -> ?le | ?ge | ?lt | ?gt | ?ne | ?eq | = = | ;
+    <relational> -> ?le | ?ge | ?lt | ?eq | = = | ;
     <exp>        -> <M> ** <exp> | <M> // <exp> | <M>
     <M>          -> <N> + <M> | <N>
     <N>          -> <R> - <N> | - <N> | <R>

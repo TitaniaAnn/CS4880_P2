@@ -1,25 +1,31 @@
-#define _POSIX_C_SOURCE 200809L
+#define _POSIX_C_SOURCE 200809L  /* expose POSIX library features for this TU */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+#include <ctype.h>                /* isspace, isalpha, isdigit */
 
 #include "lexer.h"
 #include "token.h"
 
+/* Readable names for each tokenID, indexed by the enum value. Used by the
+   -l lex-only dump in P2.c. Order must match the enum in token.h. */
 const char * const tokenNames[] = {
     "IDTk", "IntTk", "KW_tk", "OpTk", "OpDelTk", "EOFTk"
 };
 
+/* Lexer state, file-local: the source stream and the current line number. */
 static FILE *src     = NULL;
 static int   lineNum = 1;
 
+/* Bind the lexer to an open stream and reset the line counter. */
 void lexer_init(FILE *fp)
 {
     src     = fp;
     lineNum = 1;
 }
 
+/* Read one character, advancing the line counter on newlines so every token
+   can be tagged with the line it starts on. */
 static int nextChar(void)
 {
     int c = fgetc(src);
@@ -28,6 +34,8 @@ static int nextChar(void)
     return c;
 }
 
+/* Put a character back for the next read. We undo the line bump here too, so
+   pushing back a newline keeps the counter consistent. */
 static void pushBack(int c)
 {
     if (c == '\n')
@@ -35,18 +43,22 @@ static void pushBack(int c)
     ungetc(c, src);
 }
 
+/* Report a lexical error (with the current line) and abort. */
 static void lexError(const char *detail)
 {
     fprintf(stderr, "LEXICAL ERROR: %s line %d\n", detail, lineNum);
     exit(1);
 }
 
+/* The reserved words of the language. NULL-terminated so isKeyword can loop
+   without a separate count. */
 static const char * const keywords[] = {
     "go", "og", "loop", "int", "exit", "scan",
     "output", "cond", "then", "set", "func", "program",
     NULL
 };
 
+/* Return 1 if s exactly matches a reserved word, else 0. */
 static int isKeyword(const char *s)
 {
     int i;
@@ -56,6 +68,7 @@ static int isKeyword(const char *s)
     return 0;
 }
 
+/* The operators/delimiters that are a single character on their own. */
 static int isSingleCharOp(int c)
 {
     return c == '+' || c == '-' || c == ':' || c == ';' ||
@@ -63,6 +76,7 @@ static int isSingleCharOp(int c)
            c == '}' || c == '[' || c == ']';
 }
 
+/* Build a Token value, copying the instance text with guaranteed termination. */
 static Token makeToken(tokenID id, const char *instance, int line)
 {
     Token t;
@@ -73,6 +87,7 @@ static Token makeToken(tokenID id, const char *instance, int line)
     return t;
 }
 
+/* Scan and return the next token. Skips whitespace and @...@ comments. */
 Token getNextToken(void)
 {
     int  c;
@@ -81,17 +96,19 @@ Token getNextToken(void)
     int  len;
 
 restart:
-    /* Skip whitespace, counting newlines via nextChar */
+    /* Skip whitespace, counting newlines via nextChar. EOF here means a clean
+       end of input -> hand back the EOF token. */
     do {
         c = nextChar();
         if (c == EOF)
             return makeToken(EOFTk, "", lineNum);
     } while (isspace(c));
 
-    /* Capture line number at start of this token */
+    /* Remember where this token begins (whitespace may have crossed lines). */
     tokenLine = lineNum;
 
-    /* Comment: @...@ — no internal whitespace */
+    /* Comment: @...@ with no internal whitespace. We consume it and loop back
+       to scan the token that actually follows. */
     if (c == '@') {
         int c2;
         while (1) {
@@ -101,14 +118,14 @@ restart:
             if (isspace(c2))
                 lexError("whitespace inside comment");
             if (c2 == '@')
-                break;
+                break;                 /* closing @ found */
         }
         /* goto instead of recursive getNextToken() call: recursion would grow
            the stack once per consecutive comment; a label+goto is O(1) space */
         goto restart;
     }
 
-    /* Letter: keyword or identifier (must start with 'x') */
+    /* Letter: a keyword or an identifier. Read the whole alphanumeric run. */
     if (isalpha(c)) {
         len = 0;
         buf[len++] = (char)c;
@@ -117,12 +134,12 @@ restart:
             if (isalpha(c2) || isdigit(c2) || c2 == '_') {
                 if (len < TOKEN_INSTANCE_MAX - 1)
                     buf[len++] = (char)c2;
-                else {
+                else {                 /* more than 8 significant chars */
                     buf[len] = '\0';
                     lexError("identifier or keyword exceeds 8 characters");
                 }
             } else {
-                pushBack(c2);
+                pushBack(c2);          /* this char belongs to the next token */
                 break;
             }
         }
@@ -131,6 +148,7 @@ restart:
         if (isKeyword(buf))
             return makeToken(KW_tk, buf, tokenLine);
 
+        /* Non-keyword words are identifiers, which must start with 'x'. */
         if (buf[0] != 'x') {
             char msg[64];
             snprintf(msg, sizeof(msg), "invalid identifier '%s'", buf);
@@ -139,7 +157,7 @@ restart:
         return makeToken(IDTk, buf, tokenLine);
     }
 
-    /* Digit: integer */
+    /* Digit: an integer literal. Read the whole digit run (max 8 digits). */
     if (isdigit(c)) {
         len = 0;
         buf[len++] = (char)c;
@@ -161,7 +179,8 @@ restart:
         return makeToken(IntTk, buf, tokenLine);
     }
 
-    /* '?': multi-char operator ?le ?ge ?lt ?gt ?ne ?eq */
+    /* '?': a 3-character comparison operator. Read exactly two more chars and
+       validate against the allowed set. */
     if (c == '?') {
         int c2 = nextChar();
         int c3;
@@ -178,14 +197,14 @@ restart:
             strcmp(buf, "?lt") == 0 || strcmp(buf, "?gt") == 0 ||
             strcmp(buf, "?ne") == 0 || strcmp(buf, "?eq") == 0)
             return makeToken(OpTk, buf, tokenLine);
-        {
+        {                              /* anything else after '?' is invalid */
             char msg[32];
             snprintf(msg, sizeof(msg), "unknown operator '%s'", buf);
             lexError(msg);
         }
     }
 
-    /* '*': must be '**' */
+    /* '*': only valid doubled as '**'. */
     if (c == '*') {
         int c2 = nextChar();
         if (c2 == '*')
@@ -194,7 +213,7 @@ restart:
         lexError("bare '*' is not a valid token");
     }
 
-    /* '/': must be '//' */
+    /* '/': only valid doubled as '//'. */
     if (c == '/') {
         int c2 = nextChar();
         if (c2 == '/')
@@ -203,20 +222,20 @@ restart:
         lexError("bare '/' is not a valid token");
     }
 
-    /* Single-char operators and delimiters */
+    /* Remaining single-character operators and delimiters. */
     if (isSingleCharOp(c)) {
         buf[0] = (char)c;
         buf[1] = '\0';
         return makeToken(OpDelTk, buf, tokenLine);
     }
 
-    /* Anything else is illegal */
+    /* Any other character is not part of the language. */
     {
         char msg[32];
         snprintf(msg, sizeof(msg), "unexpected character '%c'", (char)c);
         lexError(msg);
     }
 
-    /* unreachable — suppress compiler warning */
+    /* unreachable — lexError exits, but the compiler wants a return here */
     return makeToken(EOFTk, "", lineNum);
 }

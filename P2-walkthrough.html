@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 4880 P2 — Code Walkthrough</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3250;
+    --text: #cdd6f4;
+    --muted: #7f8ac5;
+    --accent: #89b4fa;
+    --green: #a6e3a1;
+    --yellow: #f9e2af;
+    --red: #f38ba8;
+    --purple: #cba6f7;
+    --teal: #94e2d5;
+    --orange: #fab387;
+    --keyword: #cba6f7;
+    --type: #89dceb;
+    --string: #a6e3a1;
+    --comment: #585b70;
+    --number: #fab387;
+    --func: #89b4fa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    display: flex;
+  }
+  nav {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    padding: 24px 0;
+    flex-shrink: 0;
+  }
+  nav h2 {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 20px 10px;
+  }
+  nav a {
+    display: block;
+    padding: 6px 20px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 3px solid transparent;
+    transition: all .15s;
+  }
+  nav a:hover { color: var(--accent); border-left-color: var(--accent); background: rgba(137,180,250,.06); }
+  nav .section-header {
+    margin-top: 18px;
+    padding: 4px 20px 2px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--border);
+  }
+  main {
+    flex: 1;
+    padding: 48px 56px;
+    max-width: 960px;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .subtitle { color: var(--muted); margin-bottom: 40px; font-size: 14px; }
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 48px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--yellow);
+    margin: 28px 0 10px;
+  }
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--teal);
+    margin: 20px 0 8px;
+  }
+  p { margin-bottom: 12px; color: var(--text); }
+  code {
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    background: var(--surface2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--orange);
+  }
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin: 14px 0 20px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    position: relative;
+  }
+  pre .file-label {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Segoe UI', sans-serif;
+  }
+  .kw { color: var(--keyword); }
+  .ty { color: var(--type); }
+  .st { color: var(--string); }
+  .cm { color: var(--comment); font-style: italic; }
+  .nu { color: var(--number); }
+  .fn { color: var(--func); }
+  .id { color: var(--text); }
+  .op { color: var(--red); }
+
+  .doc-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(203,166,247,.10);
+    border: 1px solid rgba(203,166,247,.25);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--purple);
+    text-decoration: none;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .doc-link::before { content: "📄"; font-size: 11px; }
+
+  .callout {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    border-left: 4px solid;
+    font-size: 14px;
+  }
+  .callout.bnf { background: rgba(166,227,161,.07); border-color: var(--green); }
+  .callout.bnf strong { color: var(--green); }
+  .callout.design { background: rgba(137,180,250,.07); border-color: var(--accent); }
+  .callout.design strong { color: var(--accent); }
+  .callout.warn { background: rgba(243,139,168,.07); border-color: var(--red); }
+  .callout.warn strong { color: var(--red); }
+  .callout.tip { background: rgba(249,226,175,.07); border-color: var(--yellow); }
+  .callout.tip strong { color: var(--yellow); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13.5px;
+  }
+  th {
+    background: var(--surface2);
+    color: var(--accent);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    border: 1px solid var(--border);
+  }
+  td {
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+  td code { background: transparent; padding: 0; color: var(--orange); }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 20px;
+    margin-right: 4px;
+  }
+  .badge.layer1 { background: rgba(249,226,175,.15); color: var(--yellow); }
+  .badge.layer2 { background: rgba(148,226,213,.15); color: var(--teal); }
+  .badge.layer3 { background: rgba(203,166,247,.15); color: var(--purple); }
+  .badge.layer4 { background: rgba(137,180,250,.15); color: var(--accent); }
+
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .arch-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+  .arch-box .name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .arch-box .desc { font-size: 12px; color: var(--muted); }
+  .arch-arrow { text-align: center; color: var(--muted); font-size: 20px; display: flex; align-items: center; justify-content: center; }
+
+  .flow-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .flow-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 13px; white-space: nowrap; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  .bnf-rule {
+    font-family: 'Cascadia Code', monospace;
+    font-size: 13px;
+    color: var(--text);
+    padding: 4px 0;
+    display: flex;
+    gap: 12px;
+  }
+  .bnf-lhs { color: var(--teal); min-width: 130px; }
+  .bnf-arrow { color: var(--muted); }
+  .bnf-rhs { color: var(--text); }
+  .bnf-rhs .kw { color: var(--yellow); }
+  .bnf-rhs .nt { color: var(--teal); }
+  .bnf-rhs .tk { color: var(--green); }
+  .bnf-rhs .alt { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<nav>
+  <h2>CS 4880 P2</h2>
+  <a href="#overview">Overview & Architecture</a>
+  <a href="#build">Build System</a>
+  <div class="section-header">Layer 1 — Tokens</div>
+  <a href="#token-h">token.h</a>
+  <div class="section-header">Layer 2 — Lexer</div>
+  <a href="#lexer-h">lexer.h</a>
+  <a href="#lexer-c">lexer.c</a>
+  <a href="#lexer-detail">  &mdash; nextChar / pushBack</a>
+  <a href="#lexer-identifiers">  &mdash; Identifiers & Keywords</a>
+  <a href="#lexer-integers">  &mdash; Integer Literals</a>
+  <a href="#lexer-operators">  &mdash; Operators</a>
+  <a href="#lexer-comments">  &mdash; Comments</a>
+  <div class="section-header">Layer 3 — Parse Tree</div>
+  <a href="#tree-h">tree.h</a>
+  <a href="#tree-c">tree.c</a>
+  <div class="section-header">Layer 4 — Parser</div>
+  <a href="#parser-h">parser.h</a>
+  <a href="#parser-c">parser.c</a>
+  <a href="#parser-helpers">  &mdash; Helpers</a>
+  <a href="#parser-program">  &mdash; program / vars / block</a>
+  <a href="#parser-stats">  &mdash; stats / mStat / stat</a>
+  <a href="#parser-statements">  &mdash; Statements</a>
+  <a href="#parser-expr">  &mdash; Expressions</a>
+  <div class="section-header">Driver</div>
+  <a href="#p2c">P2.c (main)</a>
+  <div class="section-header">Concepts</div>
+  <a href="#ll1">LL(1) Grammar</a>
+  <a href="#lookahead">Lookahead Pattern</a>
+  <a href="#tree-gen">Tree Generation</a>
+  <a href="#flow">End-to-End Flow</a>
+</nav>
+
+<main>
+
+<h1>CS 4880 P2 — Code Walkthrough</h1>
+<p class="subtitle">Compiler Design · Lexical Analyzer + Recursive Descent Parser · Spring 2026</p>
+
+<!-- ══════════════════════════════════════════════════════ OVERVIEW -->
+<h2 id="overview">Overview &amp; Architecture</h2>
+
+<p>
+  P2 is a two-phase front-end of a compiler for a toy language. It is built on top of the P1
+  lexer and adds a <strong>recursive descent parser</strong> that builds a <strong>parse tree</strong>
+  which is then printed to stdout. The project is structured in four clean layers with strict
+  separation of concerns:
+</p>
+
+<div class="arch-grid">
+  <div class="arch-box">
+    <div class="name" style="color:var(--yellow)">token.h</div>
+    <div class="badge layer1">Layer 1</div>
+    <div class="desc">Shared data types only. No logic. The lingua franca of all layers.</div>
+  </div>
+  <div class="arch-box">
+    <div class="name" style="color:var(--teal)">lexer.h / lexer.c</div>
+    <div class="badge layer2">Layer 2</div>
+    <div class="desc">Character scanner. Converts source text → Token stream.</div>
+  </div>
+  <div class="arch-box">
+    <div class="name" style="color:var(--purple)">tree.h / tree.c</div>
+    <div class="badge layer3">Layer 3</div>
+    <div class="desc">Generic parse-tree node. Allocate, link, print, free.</div>
+  </div>
+  <div class="arch-box">
+    <div class="name" style="color:var(--accent)">parser.h / parser.c</div>
+    <div class="badge layer4">Layer 4</div>
+    <div class="desc">LL(1) recursive descent. BNF grammar → Node* tree.</div>
+  </div>
+</div>
+
+<div class="callout design">
+  <strong>Why this layering?</strong>
+  The <code>RecursiveDescentParser.pdf</code> doc says each nonterminal becomes a function
+  (Layer 4), and each function should get/return tokens from the scanner without worrying about
+  character-level details (Layer 2). Keeping token definitions separate (Layer 1) prevents
+  circular header dependencies.
+</div>
+
+<!-- ══════════════════════════════════════════════════════ BUILD -->
+<h2 id="build">Build System — Makefile</h2>
+
+<pre><span class="cm"># CC and CFLAGS are standard make variables</span>
+<span class="id">CC</span>     = <span class="st">gcc</span>
+<span class="id">CFLAGS</span> = <span class="st">-Wall -Wextra -pedantic -std=c11 -g</span>
+
+<span class="fn">all</span>: P2
+
+<span class="fn">P2</span>: P2.o parser.o tree.o lexer.o
+    $(CC) $(CFLAGS) -o P2 P2.o parser.o tree.o lexer.o
+
+<span class="fn">P2.o</span>:     P2.c parser.h lexer.h token.h
+<span class="fn">parser.o</span>: parser.c parser.h tree.h lexer.h token.h
+<span class="fn">tree.o</span>:   tree.c tree.h token.h
+<span class="fn">lexer.o</span>:  lexer.c lexer.h token.h
+
+<span class="fn">clean</span>:
+    rm -f *.o P2<span class="file-label">Makefile</span></pre>
+
+<p>
+  Each <code>.c</code> file is compiled separately into a <code>.o</code> object file, then all
+  four are linked into the final <code>P2</code> executable. The dependency lines ensure Make
+  only recompiles what changed. Flags worth noting:
+</p>
+<table>
+  <tr><th>Flag</th><th>Purpose</th></tr>
+  <tr><td><code>-Wall -Wextra -pedantic</code></td><td>Maximum warnings — catches implicit fallthrough, unused variables, non-standard extensions</td></tr>
+  <tr><td><code>-std=c11</code></td><td>Locks to C11 so code is portable and <code>for (int i = ...)</code> loop vars are legal</td></tr>
+  <tr><td><code>-g</code></td><td>Embeds debug symbols so <code>gdb</code> shows source lines on crash</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════ TOKEN.H -->
+<h2 id="token-h">token.h — Shared Data Definitions</h2>
+<p><span class="badge layer1">Layer 1</span> Pure header. No <code>.c</code> counterpart — zero logic here.</p>
+
+<pre><span class="kw">#ifndef</span> TOKEN_H
+<span class="kw">#define</span> TOKEN_H
+
+<span class="kw">typedef enum</span> {
+    <span class="id">IDTk</span>,      <span class="cm">/* user-defined identifier  */</span>
+    <span class="id">IntTk</span>,     <span class="cm">/* integer literal          */</span>
+    <span class="id">KW_tk</span>,     <span class="cm">/* language keyword         */</span>
+    <span class="id">OpTk</span>,      <span class="cm">/* multi-char operator       */</span>
+    <span class="id">OpDelTk</span>,   <span class="cm">/* single-char op/delimiter  */</span>
+    <span class="id">EOFTk</span>      <span class="cm">/* end of input              */</span>
+} <span class="ty">tokenID</span>;
+
+<span class="kw">extern const char</span> <span class="op">*</span> <span class="kw">const</span> <span class="id">tokenNames</span>[];   <span class="cm">/* defined in lexer.c */</span>
+
+<span class="kw">#define</span> TOKEN_INSTANCE_MAX <span class="nu">9</span>   <span class="cm">/* 8 significant chars + NUL */</span>
+
+<span class="kw">typedef struct</span> {
+    <span class="ty">tokenID</span>  <span class="id">id</span>;
+    <span class="kw">char</span>     <span class="id">instance</span>[TOKEN_INSTANCE_MAX];
+    <span class="kw">int</span>      <span class="id">lineNumber</span>;
+} <span class="ty">Token</span>;
+
+<span class="kw">#endif</span><span class="file-label">token.h</span></pre>
+
+<h3>Why this enum layout?</h3>
+<p>
+  The language spec (P1/P2 BNF) only needs six categories to distinguish every possible token.
+  The parser only ever checks <code>tk.id</code> plus <code>tk.instance</code> — it never needs
+  to peek at raw characters again. This clean boundary is what makes the parser completely
+  independent of the lexer's internals.
+</p>
+
+<div class="callout bnf">
+  <strong>BNF Connection:</strong>
+  The BNF grammar uses terminals like <em>identifier</em>, <em>integer</em>, <em>go</em>,
+  <em>scan</em>, etc. These map directly onto token IDs:
+  <ul style="margin-top:8px;margin-left:18px">
+    <li><em>identifier</em> → <code>IDTk</code></li>
+    <li><em>integer</em> → <code>IntTk</code></li>
+    <li><em>go, exit, int, scan, output, …</em> → <code>KW_tk</code></li>
+    <li><em>?le, ?ge, **, //</em> → <code>OpTk</code></li>
+    <li><em>=, :, {, }, [, ], (, ), +, -</em> → <code>OpDelTk</code></li>
+  </ul>
+</div>
+
+<h3>The TOKEN_INSTANCE_MAX = 9 constant</h3>
+<p>
+  The language spec says identifiers are at most 8 characters long and integers are at most
+  8 digits. Adding 1 for the null terminator gives 9. This single constant is used everywhere
+  — the struct definition, <code>strncpy</code> calls in the lexer, and the lexer's local
+  <code>buf[TOKEN_INSTANCE_MAX]</code> — so changing the limit only requires editing one line.
+</p>
+
+<!-- ══════════════════════════════════════════════════════ LEXER.H -->
+<h2 id="lexer-h">lexer.h — Lexer Interface</h2>
+<p><span class="badge layer2">Layer 2</span> Public API — the only part of the lexer that parser.c ever sees.</p>
+
+<pre><span class="kw">#ifndef</span> LEXER_H
+<span class="kw">#define</span> LEXER_H
+
+<span class="kw">#include</span> <span class="st">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="st">"token.h"</span>
+
+<span class="kw">void</span>  <span class="fn">lexer_init</span>(<span class="ty">FILE</span> <span class="op">*</span>fp);
+<span class="ty">Token</span> <span class="fn">getNextToken</span>(<span class="kw">void</span>);
+
+<span class="kw">#endif</span><span class="file-label">lexer.h</span></pre>
+
+<p>
+  Just two functions. <code>lexer_init</code> must be called once to bind the lexer to a file.
+  <code>getNextToken</code> is the scanner function referenced throughout
+  <code>RecursiveDescentParser.pdf</code> — the doc calls it <code>scanner()</code>.
+</p>
+
+<div class="callout design">
+  <strong>Interface Isolation:</strong>
+  The parser calls <em>only</em> <code>getNextToken()</code>. It never touches <code>FILE*</code>,
+  never calls <code>fgetc</code>, never knows about comment syntax or identifier rules. This
+  matches the layered design the doc describes when it says "Each function is called with
+  unconsumed token and returns with unconsumed token."
+</div>
+
+<!-- ══════════════════════════════════════════════════════ LEXER.C -->
+<h2 id="lexer-c">lexer.c — The Lexical Analyzer</h2>
+<p><span class="badge layer2">Layer 2</span> Stateful character-by-character scanner. Converts a stream of characters into Tokens.</p>
+
+<pre><span class="kw">#define</span> _POSIX_C_SOURCE <span class="nu">200809L</span>   <span class="cm">/* enables POSIX extensions on Linux/Mac */</span>
+<span class="kw">#include</span> <span class="st">&lt;ctype.h&gt;</span>                 <span class="cm">/* isalpha, isdigit, isspace             */</span>
+
+<span class="kw">const char</span> <span class="op">*</span> <span class="kw">const</span> <span class="id">tokenNames</span>[] = {
+    <span class="st">"IDTk"</span>, <span class="st">"IntTk"</span>, <span class="st">"KW_tk"</span>, <span class="st">"OpTk"</span>, <span class="st">"OpDelTk"</span>, <span class="st">"EOFTk"</span>
+};
+
+<span class="kw">static</span> <span class="ty">FILE</span> <span class="op">*</span><span class="id">src</span>     = <span class="kw">NULL</span>;
+<span class="kw">static int</span>   <span class="id">lineNum</span> = <span class="nu">1</span>;<span class="file-label">lexer.c (top)</span></pre>
+
+<p>
+  <code>static</code> on both variables means they have file scope only — nothing outside
+  <code>lexer.c</code> can access or corrupt them. <code>lineNum</code> starts at 1 because
+  the first line of a file is line 1, not 0.
+</p>
+
+<h3 id="lexer-detail">nextChar and pushBack</h3>
+
+<pre><span class="kw">static int</span> <span class="fn">nextChar</span>(<span class="kw">void</span>) {
+    <span class="kw">int</span> <span class="id">c</span> = <span class="fn">fgetc</span>(<span class="id">src</span>);
+    <span class="kw">if</span> (<span class="id">c</span> == <span class="st">'\n'</span>)
+        <span class="id">lineNum</span><span class="op">++</span>;
+    <span class="kw">return</span> <span class="id">c</span>;
+}
+
+<span class="kw">static void</span> <span class="fn">pushBack</span>(<span class="kw">int</span> <span class="id">c</span>) {
+    <span class="kw">if</span> (<span class="id">c</span> == <span class="st">'\n'</span>)
+        <span class="id">lineNum</span><span class="op">--</span>;
+    <span class="fn">ungetc</span>(<span class="id">c</span>, <span class="id">src</span>);
+}<span class="file-label">lexer.c:23-36</span></pre>
+
+<p>
+  These two wrappers around <code>fgetc</code> / <code>ungetc</code> are the only places that
+  advance or retreat in the input. Every other function in the lexer calls these, so line
+  tracking is handled in one place. <code>pushBack</code> undoes the newline count so
+  <code>lineNum</code> stays accurate when the lexer "peeks" ahead one character and then
+  decides not to consume it (e.g., seeing a lone <code>*</code> before confirming it's <code>**</code>).
+</p>
+
+<div class="callout tip">
+  <strong>Why return int, not char?</strong>
+  <code>fgetc</code> returns <code>int</code> so <code>EOF</code> (typically -1) fits without
+  conflicting with any valid <code>unsigned char</code> value. Storing it as <code>char</code>
+  first could silently truncate the sentinel value on platforms where <code>char</code> is unsigned.
+</div>
+
+<h3 id="lexer-comments">Comments — <code>@...@</code></h3>
+
+<pre><span class="kw">if</span> (<span class="id">c</span> == <span class="st">'@'</span>) {
+    <span class="kw">int</span> <span class="id">c2</span>;
+    <span class="kw">while</span> (<span class="nu">1</span>) {
+        <span class="id">c2</span> = <span class="fn">nextChar</span>();
+        <span class="kw">if</span> (<span class="id">c2</span> == <span class="id">EOF</span>)    <span class="fn">lexError</span>(<span class="st">"unterminated comment"</span>);
+        <span class="kw">if</span> (<span class="fn">isspace</span>(<span class="id">c2</span>))  <span class="fn">lexError</span>(<span class="st">"whitespace inside comment"</span>);
+        <span class="kw">if</span> (<span class="id">c2</span> == <span class="st">'@'</span>)    <span class="kw">break</span>;
+    }
+    <span class="kw">goto</span> <span class="id">restart</span>;  <span class="cm">/* O(1) stack space vs. recursive call */</span>
+}<span class="file-label">lexer.c:95-109</span></pre>
+
+<p>
+  Comments are delimited by <code>@</code> on both sides and may not contain whitespace.
+  After consuming the closing <code>@</code>, the lexer jumps back to the top of
+  <code>getNextToken</code> via <code>goto restart</code> rather than calling itself recursively.
+  The inline comment explains the reason: a sequence of back-to-back comments like
+  <code>@a@ @b@ @c@</code> would grow the C stack one frame per comment with a recursive
+  approach; the <code>goto</code> keeps it O(1).
+</p>
+
+<h3 id="lexer-identifiers">Identifiers &amp; Keywords</h3>
+
+<pre><span class="kw">if</span> (<span class="fn">isalpha</span>(<span class="id">c</span>)) {
+    <span class="id">len</span> = <span class="nu">0</span>;
+    <span class="id">buf</span>[<span class="id">len</span><span class="op">++</span>] = (<span class="kw">char</span>)<span class="id">c</span>;
+    <span class="kw">while</span> (<span class="nu">1</span>) {
+        <span class="kw">int</span> <span class="id">c2</span> = <span class="fn">nextChar</span>();
+        <span class="kw">if</span> (<span class="fn">isalpha</span>(<span class="id">c2</span>) || <span class="fn">isdigit</span>(<span class="id">c2</span>) || <span class="id">c2</span> == <span class="st">'_'</span>) {
+            <span class="kw">if</span> (<span class="id">len</span> < TOKEN_INSTANCE_MAX - <span class="nu">1</span>)
+                <span class="id">buf</span>[<span class="id">len</span><span class="op">++</span>] = (<span class="kw">char</span>)<span class="id">c2</span>;
+            <span class="kw">else</span>
+                <span class="fn">lexError</span>(<span class="st">"identifier or keyword exceeds 8 characters"</span>);
+        } <span class="kw">else</span> { <span class="fn">pushBack</span>(<span class="id">c2</span>); <span class="kw">break</span>; }
+    }
+    <span class="id">buf</span>[<span class="id">len</span>] = <span class="st">'\0'</span>;
+
+    <span class="kw">if</span> (<span class="fn">isKeyword</span>(<span class="id">buf</span>))
+        <span class="kw">return</span> <span class="fn">makeToken</span>(<span class="id">KW_tk</span>, <span class="id">buf</span>, <span class="id">tokenLine</span>);
+
+    <span class="kw">if</span> (<span class="id">buf</span>[<span class="nu">0</span>] != <span class="st">'x'</span>)  <span class="cm">/* identifiers MUST start with 'x' */</span>
+        <span class="fn">lexError</span>(msg);
+
+    <span class="kw">return</span> <span class="fn">makeToken</span>(<span class="id">IDTk</span>, <span class="id">buf</span>, <span class="id">tokenLine</span>);
+}<span class="file-label">lexer.c:112-140</span></pre>
+
+<p>
+  The lexer reads characters as long as they are alphanumeric or underscore (the maximal munch
+  rule). After buffering the whole word it checks two things in order:
+</p>
+<ol style="margin:8px 0 12px 22px">
+  <li><strong>Is it a keyword?</strong> — linear scan of the keyword table via <code>strcmp</code>. If yes → <code>KW_tk</code>.</li>
+  <li><strong>Does it start with <code>x</code>?</strong> — the language rule. If not → lexical error. If yes → <code>IDTk</code>.</li>
+</ol>
+
+<table>
+  <tr><th>Keyword</th><th>Role in BNF</th></tr>
+  <tr><td><code>go</code></td><td>Starts <code>&lt;program&gt;</code></td></tr>
+  <tr><td><code>exit</code></td><td>Ends <code>&lt;program&gt;</code></td></tr>
+  <tr><td><code>int</code></td><td>Begins a variable declaration in <code>&lt;vars&gt;</code></td></tr>
+  <tr><td><code>scan</code></td><td>Read statement — <code>&lt;read&gt;</code></td></tr>
+  <tr><td><code>output</code></td><td>Print statement — <code>&lt;print&gt;</code></td></tr>
+  <tr><td><code>cond</code></td><td>Conditional — <code>&lt;cond&gt;</code></td></tr>
+  <tr><td><code>then</code></td><td>(reserved, not used in P2 grammar)</td></tr>
+  <tr><td><code>loop</code></td><td>Loop construct — <code>&lt;loop&gt;</code></td></tr>
+  <tr><td><code>set</code></td><td>Assignment — <code>&lt;assign&gt;</code></td></tr>
+  <tr><td><code>func</code></td><td>(reserved for future phases)</td></tr>
+  <tr><td><code>program</code></td><td>(reserved)</td></tr>
+  <tr><td><code>og</code></td><td>(reserved)</td></tr>
+</table>
+
+<h3 id="lexer-integers">Integer Literals</h3>
+
+<pre><span class="kw">if</span> (<span class="fn">isdigit</span>(<span class="id">c</span>)) {
+    <span class="id">len</span> = <span class="nu">0</span>;
+    <span class="id">buf</span>[<span class="id">len</span><span class="op">++</span>] = (<span class="kw">char</span>)<span class="id">c</span>;
+    <span class="kw">while</span> (<span class="nu">1</span>) {
+        <span class="kw">int</span> <span class="id">c2</span> = <span class="fn">nextChar</span>();
+        <span class="kw">if</span> (<span class="fn">isdigit</span>(<span class="id">c2</span>)) {
+            <span class="kw">if</span> (<span class="id">len</span> < TOKEN_INSTANCE_MAX - <span class="nu">1</span>)
+                <span class="id">buf</span>[<span class="id">len</span><span class="op">++</span>] = (<span class="kw">char</span>)<span class="id">c2</span>;
+            <span class="kw">else</span>
+                <span class="fn">lexError</span>(<span class="st">"integer exceeds 8 digits"</span>);
+        } <span class="kw">else</span> { <span class="fn">pushBack</span>(<span class="id">c2</span>); <span class="kw">break</span>; }
+    }
+    <span class="id">buf</span>[<span class="id">len</span>] = <span class="st">'\0'</span>;
+    <span class="kw">return</span> <span class="fn">makeToken</span>(<span class="id">IntTk</span>, <span class="id">buf</span>, <span class="id">tokenLine</span>);
+}<span class="file-label">lexer.c:143-162</span></pre>
+
+<p>
+  Same maximal-munch pattern as identifiers but only for digits. No floating-point, no hex,
+  no negative sign here — negative numbers are handled at the parser level via the <code>&lt;N&gt;</code>
+  rule's unary minus production.
+</p>
+
+<h3 id="lexer-operators">Operators</h3>
+<p>Three distinct sub-cases cover all operators defined in the language:</p>
+
+<table>
+  <tr><th>Pattern</th><th>Code Path</th><th>Token Type</th><th>Examples</th></tr>
+  <tr><td><code>?xx</code> — 3-char</td><td>Reads exactly 2 more chars, validates against allowed set</td><td><code>OpTk</code></td><td><code>?le ?ge ?lt ?gt ?ne ?eq</code></td></tr>
+  <tr><td><code>**</code> and <code>//</code></td><td>Reads 1 more char; if not a second <code>*</code>/<code>/</code> → error</td><td><code>OpTk</code></td><td><code>**</code> <code>//</code></td></tr>
+  <tr><td>Single-char</td><td><code>isSingleCharOp(c)</code> truth table</td><td><code>OpDelTk</code></td><td><code>+ - : ; = ( ) { } [ ]</code></td></tr>
+</table>
+
+<pre><span class="cm">/* '?': multi-char operator ?le ?ge ?lt ?gt ?ne ?eq */</span>
+<span class="kw">if</span> (<span class="id">c</span> == <span class="st">'?'</span>) {
+    <span class="kw">int</span> <span class="id">c2</span> = <span class="fn">nextChar</span>(), <span class="id">c3</span> = <span class="fn">nextChar</span>();
+    <span class="id">buf</span>[<span class="nu">0</span>] = <span class="st">'?'</span>; <span class="id">buf</span>[<span class="nu">1</span>] = (<span class="kw">char</span>)<span class="id">c2</span>; <span class="id">buf</span>[<span class="nu">2</span>] = (<span class="kw">char</span>)<span class="id">c3</span>; <span class="id">buf</span>[<span class="nu">3</span>] = <span class="st">'\0'</span>;
+    <span class="kw">if</span> (<span class="fn">strcmp</span>(<span class="id">buf</span>, <span class="st">"?le"</span>) == <span class="nu">0</span> || <span class="fn">strcmp</span>(<span class="id">buf</span>, <span class="st">"?ge"</span>) == <span class="nu">0</span> || ...)
+        <span class="kw">return</span> <span class="fn">makeToken</span>(<span class="id">OpTk</span>, <span class="id">buf</span>, <span class="id">tokenLine</span>);
+    <span class="fn">lexError</span>(...);
+}
+
+<span class="cm">/* '*': must be '**' */</span>
+<span class="kw">if</span> (<span class="id">c</span> == <span class="st">'*'</span>) {
+    <span class="kw">int</span> <span class="id">c2</span> = <span class="fn">nextChar</span>();
+    <span class="kw">if</span> (<span class="id">c2</span> == <span class="st">'*'</span>) <span class="kw">return</span> <span class="fn">makeToken</span>(<span class="id">OpTk</span>, <span class="st">"**"</span>, <span class="id">tokenLine</span>);
+    <span class="fn">pushBack</span>(<span class="id">c2</span>);
+    <span class="fn">lexError</span>(<span class="st">"bare '*' is not a valid token"</span>);
+}<span class="file-label">lexer.c:164-204</span></pre>
+
+<div class="callout bnf">
+  <strong>BNF Connection — &lt;relational&gt;:</strong>
+  The grammar rule <code>&lt;relational&gt; -&gt; ?le | ?ge | ?lt | ?eq | = = | ;</code>
+  relies on the lexer producing these exact <code>OpTk</code> instances. Note <code>= =</code>
+  is two separate <code>OpDelTk("=")</code> tokens — the parser's <code>relational()</code>
+  function consumes them one at a time.
+</div>
+
+<!-- ══════════════════════════════════════════════════════ TREE.H -->
+<h2 id="tree-h">tree.h — Parse Tree Node Definition</h2>
+<p><span class="badge layer3">Layer 3</span> The data structure that the parser builds and then prints.</p>
+
+<pre><span class="kw">#define</span> MAX_CHILDREN <span class="nu">4</span>
+
+<span class="kw">typedef struct</span> Node {
+    <span class="kw">char</span>         <span class="id">label</span>[<span class="nu">32</span>];            <span class="cm">/* nonterminal name, e.g. "program" */</span>
+    <span class="ty">Token</span>        <span class="id">tokens</span>[<span class="nu">3</span>];            <span class="cm">/* semantic tokens stored here      */</span>
+    <span class="kw">int</span>          <span class="id">tokenCount</span>;
+    <span class="kw">struct</span> Node <span class="op">*</span><span class="id">children</span>[MAX_CHILDREN]; <span class="cm">/* sub-nonterminal nodes             */</span>
+    <span class="kw">int</span>          <span class="id">childCount</span>;
+} <span class="ty">Node</span>;<span class="file-label">tree.h</span></pre>
+
+<p>
+  Three parallel decisions are visible in this struct, each directly traceable to the course docs:
+</p>
+
+<table>
+  <tr><th>Field</th><th>Why that size?</th><th>Doc Source</th></tr>
+  <tr><td><code>label[32]</code></td><td>Longest nonterminal name (<em>relational</em>) is 10 chars; 32 is safe headroom</td><td><em>RecursiveDescentParser.pdf</em> p.3: "A label identifying the function that created the label (and thus nonterminal)"</td></tr>
+  <tr><td><code>tokens[3]</code></td><td>Maximum semantic tokens in any single production — <code>&lt;varList&gt;</code> stores two (identifier + integer), <code>&lt;relational&gt;</code> stores two for <code>= =</code></td><td><em>RecursiveDescentParser.pdf</em> p.3: "maximum number of semantics token in any production"</td></tr>
+  <tr><td><code>children[4]</code></td><td>Maximum nonterminals on any RHS — <code>&lt;cond&gt;</code> and <code>&lt;loop&gt;</code> have 3 (<code>&lt;relational&gt;</code>, <code>&lt;exp&gt;</code>, <code>&lt;stat&gt;</code>); 4 gives safe margin</td><td><em>RecursiveDescentParser.pdf</em> p.3: "maximum number of nonterminal in any production"</td></tr>
+</table>
+
+<div class="callout design">
+  <strong>Semantic vs. Structural tokens:</strong>
+  The doc says "structural tokens are disposed: {}, (), delimiters" while "semantics tokens are
+  stored in the node: IDTk, NumberTk, OperatorTk." In this code, keywords like <code>go</code>,
+  <code>scan</code>, <code>int</code> are consumed and discarded (the node label already records
+  which rule matched). Only <code>IDTk</code>, <code>IntTk</code>, and operator tokens are passed
+  to <code>addToken()</code>.
+</div>
+
+<!-- ══════════════════════════════════════════════════════ TREE.C -->
+<h2 id="tree-c">tree.c — Tree Operations</h2>
+<p><span class="badge layer3">Layer 3</span> Four functions: create, attach, print, free.</p>
+
+<h4>newNode</h4>
+<pre><span class="ty">Node</span> <span class="op">*</span><span class="fn">newNode</span>(<span class="kw">const char</span> <span class="op">*</span><span class="id">label</span>)
+{
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span> = <span class="fn">malloc</span>(<span class="kw">sizeof</span>(<span class="ty">Node</span>));
+    <span class="kw">if</span> (!<span class="id">n</span>) { <span class="fn">fprintf</span>(<span class="id">stderr</span>, <span class="st">"out of memory\n"</span>); <span class="fn">exit</span>(<span class="nu">1</span>); }
+    <span class="fn">strncpy</span>(<span class="id">n</span>-&gt;<span class="id">label</span>, <span class="id">label</span>, <span class="kw">sizeof</span>(<span class="id">n</span>-&gt;<span class="id">label</span>) - <span class="nu">1</span>);
+    <span class="id">n</span>-&gt;<span class="id">label</span>[<span class="kw">sizeof</span>(<span class="id">n</span>-&gt;<span class="id">label</span>) - <span class="nu">1</span>] = <span class="st">'\0'</span>;
+    <span class="id">n</span>-&gt;<span class="id">tokenCount</span> = <span class="id">n</span>-&gt;<span class="id">childCount</span> = <span class="nu">0</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> <span class="id">i</span> = <span class="nu">0</span>; <span class="id">i</span> &lt; MAX_CHILDREN; <span class="id">i</span>++) <span class="id">n</span>-&gt;<span class="id">children</span>[<span class="id">i</span>] = <span class="kw">NULL</span>;
+    <span class="kw">return</span> <span class="id">n</span>;
+}<span class="file-label">tree.c:7-17</span></pre>
+
+<p>
+  Allocates on the heap (<code>malloc</code>) so the node outlives the parser function that
+  created it. The doc says functions return <code>Node*</code> pointers — stack allocation
+  would be dangling by the time the caller adds the node as a child.
+</p>
+
+<h4>printTree — Indented Depth-First Traversal</h4>
+<pre><span class="kw">void</span> <span class="fn">printTree</span>(<span class="kw">const</span> <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span>, <span class="kw">int</span> <span class="id">depth</span>)
+{
+    <span class="kw">if</span> (!<span class="id">n</span>) <span class="kw">return</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> <span class="id">i</span> = <span class="nu">0</span>; <span class="id">i</span> &lt; <span class="id">depth</span>; <span class="id">i</span>++) <span class="fn">printf</span>(<span class="st">"  "</span>);   <span class="cm">/* 2-space indent per level */</span>
+    <span class="fn">printf</span>(<span class="st">"%s"</span>, <span class="id">n</span>-&gt;<span class="id">label</span>);
+    <span class="kw">for</span> (<span class="kw">int</span> <span class="id">i</span> = <span class="nu">0</span>; <span class="id">i</span> &lt; <span class="id">n</span>-&gt;<span class="id">tokenCount</span>; <span class="id">i</span>++) <span class="fn">printToken</span>(<span class="id">n</span>-&gt;<span class="id">tokens</span>[<span class="id">i</span>]);
+    <span class="fn">printf</span>(<span class="st">"\n"</span>);
+    <span class="kw">for</span> (<span class="kw">int</span> <span class="id">i</span> = <span class="nu">0</span>; <span class="id">i</span> &lt; <span class="id">n</span>-&gt;<span class="id">childCount</span>; <span class="id">i</span>++) <span class="fn">printTree</span>(<span class="id">n</span>-&gt;<span class="id">children</span>[<span class="id">i</span>], <span class="id">depth</span> + <span class="nu">1</span>);
+}<span class="file-label">tree.c:46-54</span></pre>
+
+<p>
+  Pre-order traversal (print node, then recurse into children). Each level gets 2 extra spaces,
+  so the visual tree depth matches structural depth. Tokens are printed inline with the label:
+  <code>ID:xVar:3</code>, <code>#:42:5</code>, <code>Op:+:5</code>.
+</p>
+
+<h4>freeTree — Post-Order Cleanup</h4>
+<pre><span class="kw">void</span> <span class="fn">freeTree</span>(<span class="ty">Node</span> <span class="op">*</span><span class="id">n</span>) {
+    <span class="kw">if</span> (!<span class="id">n</span>) <span class="kw">return</span>;
+    <span class="kw">for</span> (<span class="kw">int</span> <span class="id">i</span> = <span class="nu">0</span>; <span class="id">i</span> &lt; <span class="id">n</span>-&gt;<span class="id">childCount</span>; <span class="id">i</span>++) <span class="fn">freeTree</span>(<span class="id">n</span>-&gt;<span class="id">children</span>[<span class="id">i</span>]);
+    <span class="fn">free</span>(<span class="id">n</span>);
+}<span class="file-label">tree.c:56-61</span></pre>
+
+<p>
+  Post-order: free all children before freeing the parent. This prevents use-after-free —
+  if the parent were freed first its child pointers would be dangling.
+</p>
+
+<!-- ══════════════════════════════════════════════════════ PARSER.H -->
+<h2 id="parser-h">parser.h — Parser Interface</h2>
+<p><span class="badge layer4">Layer 4</span> Minimal: one public function.</p>
+
+<pre><span class="kw">void</span> <span class="fn">parser</span>(<span class="kw">void</span>);<span class="file-label">parser.h</span></pre>
+
+<p>
+  <code>main</code> calls <code>parser()</code>, the entire recursive descent parse + tree
+  build + tree print happens inside, and control returns. The driver doesn't know or care about
+  <code>Node*</code>, tokens, or any grammar detail.
+</p>
+
+<!-- ══════════════════════════════════════════════════════ PARSER.C -->
+<h2 id="parser-c">parser.c — Recursive Descent Parser</h2>
+<p><span class="badge layer4">Layer 4</span> The heart of P2. One C function per BNF nonterminal.</p>
+
+<div class="callout bnf">
+  <strong>Key principle from RecursiveDescentParser.pdf:</strong>
+  "Every nonterminal is implemented as a function … Each function is called with unconsumed token
+  and returns with unconsumed token." This means the global <code>tk</code> always holds the
+  <em>next unprocessed</em> token. When a function needs to verify or consume it, it checks
+  <code>tk</code> then calls <code>consume()</code>.
+</div>
+
+<h3 id="parser-helpers">Helper Functions</h3>
+
+<pre><span class="kw">static</span> <span class="ty">Token</span> <span class="id">tk</span>;     <span class="cm">/* the one lookahead token — global to parser.c */</span>
+
+<span class="kw">static void</span> <span class="fn">error</span>(<span class="kw">const char</span> <span class="op">*</span><span class="id">expected</span>) {
+    <span class="fn">fprintf</span>(<span class="id">stderr</span>, <span class="st">"SYNTAX ERROR: expected %s, got '%s' (line %d)\n"</span>,
+            <span class="id">expected</span>, <span class="id">tk</span>.<span class="id">instance</span>, <span class="id">tk</span>.<span class="id">lineNumber</span>);
+    <span class="fn">exit</span>(<span class="nu">1</span>);
+}
+
+<span class="kw">static void</span> <span class="fn">consume</span>(<span class="kw">void</span>) { <span class="id">tk</span> = <span class="fn">getNextToken</span>(); }
+
+<span class="kw">static int</span> <span class="fn">isKW</span>   (<span class="kw">const char</span> <span class="op">*</span><span class="id">kw</span>) { <span class="kw">return</span> <span class="id">tk</span>.<span class="id">id</span> == <span class="id">KW_tk</span>    &amp;&amp; <span class="fn">strcmp</span>(<span class="id">tk</span>.<span class="id">instance</span>, <span class="id">kw</span>) == <span class="nu">0</span>; }
+<span class="kw">static int</span> <span class="fn">isOpDel</span>(<span class="kw">const char</span> <span class="op">*</span><span class="id">op</span>) { <span class="kw">return</span> <span class="id">tk</span>.<span class="id">id</span> == <span class="id">OpDelTk</span>  &amp;&amp; <span class="fn">strcmp</span>(<span class="id">tk</span>.<span class="id">instance</span>, <span class="id">op</span>) == <span class="nu">0</span>; }
+<span class="kw">static int</span> <span class="fn">isOp</span>   (<span class="kw">const char</span> <span class="op">*</span><span class="id">op</span>) { <span class="kw">return</span> <span class="id">tk</span>.<span class="id">id</span> == <span class="id">OpTk</span>     &amp;&amp; <span class="fn">strcmp</span>(<span class="id">tk</span>.<span class="id">instance</span>, <span class="id">op</span>) == <span class="nu">0</span>; }<span class="file-label">parser.c:11-55</span></pre>
+
+<p>
+  <code>consume()</code> is exactly <code>tk = scanner()</code> from the doc's pseudocode.
+  The three <code>is*()</code> predicates check both the token category (<code>.id</code>) and
+  the exact string (<code>.instance</code>) because the parser must distinguish
+  <code>=</code> (OpDelTk) from <code>?eq</code> (OpTk), both of which are "operator-like."
+</p>
+
+<h4>isStatFirst — FIRST set for &lt;stat&gt;</h4>
+<pre><span class="kw">static int</span> <span class="fn">isStatFirst</span>(<span class="kw">void</span>) {
+    <span class="kw">return</span> <span class="fn">isKW</span>(<span class="st">"scan"</span>)   || <span class="fn">isKW</span>(<span class="st">"output"</span>) || <span class="fn">isKW</span>(<span class="st">"cond"</span>) ||
+           <span class="fn">isKW</span>(<span class="st">"loop"</span>)   || <span class="fn">isKW</span>(<span class="st">"set"</span>)    || <span class="fn">isOpDel</span>(<span class="st">"{"</span>);
+}<span class="file-label">parser.c:57-61</span></pre>
+
+<div class="callout bnf">
+  <strong>LL(1) FIRST set:</strong>
+  The doc says "predict one production based on the current token … select the production whose
+  First set contains the token." <code>FIRST(&lt;stat&gt;)</code> = { scan, output, cond, loop,
+  set, { } — one keyword or <code>{</code> unambiguously identifies which production to take.
+  <code>isStatFirst</code> is used by <code>mStat()</code> to decide whether the empty
+  production applies.
+</div>
+
+<!-- ══════════════════════════════════════════════════════ GRAMMAR RULES -->
+<h3 id="parser-program">program / vars / varList / block</h3>
+
+<h4>program_rule — BNF: &lt;program&gt; → go &lt;vars&gt; &lt;block&gt; exit</h4>
+<pre><span class="kw">static</span> <span class="ty">Node</span> <span class="op">*</span><span class="fn">program_rule</span>(<span class="kw">void</span>)
+{
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span> = <span class="fn">newNode</span>(<span class="st">"program"</span>);
+    <span class="kw">if</span> (!<span class="fn">isKW</span>(<span class="st">"go"</span>)) <span class="fn">error</span>(<span class="st">"'go'"</span>);
+    <span class="fn">consume</span>();              <span class="cm">/* consume 'go' — structural, not stored */</span>
+    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">vars</span>());
+    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">block</span>());
+    <span class="kw">if</span> (!<span class="fn">isKW</span>(<span class="st">"exit"</span>)) <span class="fn">error</span>(<span class="st">"'exit'"</span>);
+    <span class="fn">consume</span>();              <span class="cm">/* consume 'exit' — structural */</span>
+    <span class="kw">return</span> <span class="id">n</span>;
+}<span class="file-label">parser.c:66-76</span></pre>
+
+<p>
+  Single production — no branching needed. Just process elements left-to-right: terminal <code>go</code>
+  is checked and consumed; nonterminals <code>vars</code> and <code>block</code> are called and
+  their returned nodes become children; terminal <code>exit</code> is checked and consumed.
+</p>
+
+<h4>vars — BNF: &lt;vars&gt; → empty | int identifier = integer &lt;varList&gt; :</h4>
+<pre><span class="kw">static</span> <span class="ty">Node</span> <span class="op">*</span><span class="fn">vars</span>(<span class="kw">void</span>)
+{
+    <span class="kw">if</span> (!<span class="fn">isKW</span>(<span class="st">"int"</span>)) <span class="kw">return</span> <span class="kw">NULL</span>;   <span class="cm">/* empty production */</span>
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span> = <span class="fn">newNode</span>(<span class="st">"vars"</span>);
+    <span class="fn">consume</span>();                         <span class="cm">/* int — structural */</span>
+    <span class="kw">if</span> (<span class="id">tk</span>.<span class="id">id</span> != <span class="id">IDTk</span>) <span class="fn">error</span>(<span class="st">"identifier after 'int'"</span>);
+    <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>);  <span class="fn">consume</span>();        <span class="cm">/* identifier — semantic, stored */</span>
+    <span class="kw">if</span> (!<span class="fn">isOpDel</span>(<span class="st">"="</span>)) <span class="fn">error</span>(<span class="st">"'='"</span>);
+    <span class="fn">consume</span>();                         <span class="cm">/* = — structural */</span>
+    <span class="kw">if</span> (<span class="id">tk</span>.<span class="id">id</span> != <span class="id">IntTk</span>) <span class="fn">error</span>(<span class="st">"integer"</span>);
+    <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>);  <span class="fn">consume</span>();        <span class="cm">/* integer — semantic, stored */</span>
+    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">varList</span>());
+    <span class="kw">if</span> (!<span class="fn">isOpDel</span>(<span class="st">":"</span>)) <span class="fn">error</span>(<span class="st">"':'"</span>);
+    <span class="fn">consume</span>();                         <span class="cm">/* : — structural */</span>
+    <span class="kw">return</span> <span class="id">n</span>;
+}<span class="file-label">parser.c:79-96</span></pre>
+
+<p>
+  Two-production rule. The discriminator is whether <code>tk</code> is the keyword <code>int</code>:
+  if not, take the empty production and return <code>NULL</code>. The doc says a function returning
+  on the empty production <em>can</em> return null. <code>addChild</code> in tree.c guards against
+  null children, so parent nodes do not need to check.
+</p>
+
+<h4>varList — BNF: &lt;varList&gt; → identifier = integer &lt;varList&gt; | empty</h4>
+<pre><span class="kw">static</span> <span class="ty">Node</span> <span class="op">*</span><span class="fn">varList</span>(<span class="kw">void</span>)
+{
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span> = <span class="fn">newNode</span>(<span class="st">"varList"</span>);
+    <span class="kw">if</span> (<span class="id">tk</span>.<span class="id">id</span> != <span class="id">IDTk</span>) <span class="kw">return</span> <span class="id">n</span>;    <span class="cm">/* empty production — return empty node */</span>
+    <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>);  <span class="fn">consume</span>();
+    <span class="kw">if</span> (!<span class="fn">isOpDel</span>(<span class="st">"="</span>)) <span class="fn">error</span>(<span class="st">"'='"</span>);
+    <span class="fn">consume</span>();
+    <span class="kw">if</span> (<span class="id">tk</span>.<span class="id">id</span> != <span class="id">IntTk</span>) <span class="fn">error</span>(<span class="st">"integer"</span>);
+    <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>);  <span class="fn">consume</span>();
+    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">varList</span>());           <span class="cm">/* right-recursive — handles list of any length */</span>
+    <span class="kw">return</span> <span class="id">n</span>;
+}<span class="file-label">parser.c:99-112</span></pre>
+
+<p>
+  Unlike <code>vars()</code>, this always allocates the node (even on empty) before checking
+  whether to recurse. Right-recursion is safe here because the grammar is LL(1) and right
+  recursion does not require left-factorization.
+</p>
+
+<!-- ══════════════════════════════════════════════════════ STATS -->
+<h3 id="parser-stats">stats / mStat / stat</h3>
+<p>These three rules implement the "one or more statements" idiom without using iteration in C.</p>
+
+<h4>stats — BNF: &lt;stats&gt; → &lt;stat&gt; &lt;mStat&gt;</h4>
+<pre><span class="kw">static</span> <span class="ty">Node</span> <span class="op">*</span><span class="fn">stats</span>(<span class="kw">void</span>) {
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span> = <span class="fn">newNode</span>(<span class="st">"stats"</span>);
+    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">stat</span>());    <span class="cm">/* mandatory: at least one statement */</span>
+    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">mStat</span>());   <span class="cm">/* optional: zero or more additional  */</span>
+    <span class="kw">return</span> <span class="id">n</span>;
+}<span class="file-label">parser.c:127-134</span></pre>
+
+<h4>mStat — BNF: &lt;mStat&gt; → empty | &lt;stat&gt; &lt;mStat&gt;</h4>
+<pre><span class="kw">static</span> <span class="ty">Node</span> <span class="op">*</span><span class="fn">mStat</span>(<span class="kw">void</span>) {
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span> = <span class="fn">newNode</span>(<span class="st">"mStat"</span>);
+    <span class="kw">if</span> (!<span class="fn">isStatFirst</span>()) <span class="kw">return</span> <span class="id">n</span>;   <span class="cm">/* empty production */</span>
+    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">stat</span>());
+    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">mStat</span>());           <span class="cm">/* right-recursion for next statement */</span>
+    <span class="kw">return</span> <span class="id">n</span>;
+}<span class="file-label">parser.c:136-144</span></pre>
+
+<div class="callout bnf">
+  <strong>Why right-recursion instead of a loop?</strong>
+  The doc says to implement the grammar directly as written using recursive functions, exploiting
+  the C call stack as the implicit parse stack. A C <code>while</code> loop could work here but
+  would not match the BNF, and the doc explicitly says each nonterminal gets its own function.
+  The right-recursive structure also naturally builds a right-leaning subtree that represents the
+  order of statements.
+</div>
+
+<h4>stat — dispatches by FIRST token</h4>
+<pre><span class="kw">static</span> <span class="ty">Node</span> <span class="op">*</span><span class="fn">stat</span>(<span class="kw">void</span>) {
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span> = <span class="fn">newNode</span>(<span class="st">"stat"</span>);
+    <span class="kw">if</span>      (<span class="fn">isKW</span>(<span class="st">"scan"</span>))   <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">read</span>());
+    <span class="kw">else if</span> (<span class="fn">isKW</span>(<span class="st">"output"</span>)) <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">print</span>());
+    <span class="kw">else if</span> (<span class="fn">isOpDel</span>(<span class="st">"{"</span>))   <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">block</span>());
+    <span class="kw">else if</span> (<span class="fn">isKW</span>(<span class="st">"cond"</span>))   <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">cond</span>());
+    <span class="kw">else if</span> (<span class="fn">isKW</span>(<span class="st">"loop"</span>))   <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">loop</span>());
+    <span class="kw">else if</span> (<span class="fn">isKW</span>(<span class="st">"set"</span>))    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">assign</span>());
+    <span class="kw">else</span>                     <span class="fn">error</span>(<span class="st">"statement keyword or '{'"</span>);
+    <span class="kw">return</span> <span class="id">n</span>;
+}<span class="file-label">parser.c:146-158</span></pre>
+
+<p>
+  This is the canonical LL(1) dispatch table in code form. Each branch's FIRST set is disjoint
+  (enforced by the language design): <code>scan</code>, <code>output</code>, <code>{</code>,
+  <code>cond</code>, <code>loop</code>, <code>set</code> are all unique tokens, so exactly one
+  branch is chosen with one token of lookahead — hence LL(<strong>1</strong>).
+</p>
+
+<!-- ══════════════════════════════════════════════════════ STATEMENTS -->
+<h3 id="parser-statements">Individual Statement Rules</h3>
+
+<table>
+  <tr>
+    <th>BNF Rule</th>
+    <th>Key Behavior</th>
+  </tr>
+  <tr>
+    <td><code>&lt;read&gt; → scan identifier :</code></td>
+    <td>Consumes <code>scan</code>, stores identifier token via <code>addToken</code>, consumes <code>:</code></td>
+  </tr>
+  <tr>
+    <td><code>&lt;print&gt; → output &lt;exp&gt; :</code></td>
+    <td>Consumes <code>output</code>, recursively calls <code>expr()</code> for the expression subtree, consumes <code>:</code></td>
+  </tr>
+  <tr>
+    <td><code>&lt;cond&gt; → cond [ id &lt;relational&gt; &lt;exp&gt; ] &lt;stat&gt;</code></td>
+    <td>Consumes <code>cond [</code>, stores identifier, gets relational + expr subtrees, consumes <code>]</code>, gets body <code>stat</code> subtree</td>
+  </tr>
+  <tr>
+    <td><code>&lt;loop&gt; → loop [ id &lt;relational&gt; &lt;exp&gt; ] &lt;stat&gt;</code></td>
+    <td>Identical structure to <code>cond</code> — only the opening keyword differs</td>
+  </tr>
+  <tr>
+    <td><code>&lt;assign&gt; → set identifier = &lt;exp&gt; :</code></td>
+    <td>Stores identifier, consumes <code>=</code>, gets expression subtree, consumes <code>:</code></td>
+  </tr>
+</table>
+
+<pre><span class="cm">/* &lt;cond&gt; / &lt;loop&gt; share identical structure */</span>
+<span class="kw">static</span> <span class="ty">Node</span> <span class="op">*</span><span class="fn">cond</span>(<span class="kw">void</span>) {
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span> = <span class="fn">newNode</span>(<span class="st">"cond"</span>);
+    <span class="fn">consume</span>();                      <span class="cm">/* cond */</span>
+    <span class="kw">if</span> (!<span class="fn">isOpDel</span>(<span class="st">"["</span>)) <span class="fn">error</span>(<span class="st">"'['"</span>);
+    <span class="fn">consume</span>();                      <span class="cm">/* [ */</span>
+    <span class="kw">if</span> (<span class="id">tk</span>.<span class="id">id</span> != <span class="id">IDTk</span>) <span class="fn">error</span>(<span class="st">"identifier"</span>);
+    <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>); <span class="fn">consume</span>();
+    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">relational</span>());
+    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">expr</span>());
+    <span class="kw">if</span> (!<span class="fn">isOpDel</span>(<span class="st">"]"</span>)) <span class="fn">error</span>(<span class="st">"']'"</span>);
+    <span class="fn">consume</span>();                      <span class="cm">/* ] */</span>
+    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">stat</span>());            <span class="cm">/* body — itself recursive */</span>
+    <span class="kw">return</span> <span class="id">n</span>;
+}<span class="file-label">parser.c:184-199</span></pre>
+
+<h4>relational — restricting to the BNF operators, and the two-token = = case</h4>
+<pre><span class="cm">/* &lt;relational&gt; accepts ONLY the four ?-ops named in the BNF.
+   ?gt and ?ne are valid P1 tokens but are NOT relational operators. */</span>
+<span class="kw">static</span> <span class="kw">int</span> <span class="fn">isRelOp</span>(<span class="kw">void</span>) {
+    <span class="kw">return</span> <span class="id">tk</span>.<span class="id">id</span> == <span class="id">OpTk</span> &amp;&amp;
+           (<span class="fn">strcmp</span>(<span class="id">tk</span>.<span class="id">instance</span>, <span class="st">"?le"</span>) == <span class="nu">0</span> || <span class="fn">strcmp</span>(<span class="id">tk</span>.<span class="id">instance</span>, <span class="st">"?ge"</span>) == <span class="nu">0</span> ||
+            <span class="fn">strcmp</span>(<span class="id">tk</span>.<span class="id">instance</span>, <span class="st">"?lt"</span>) == <span class="nu">0</span> || <span class="fn">strcmp</span>(<span class="id">tk</span>.<span class="id">instance</span>, <span class="st">"?eq"</span>) == <span class="nu">0</span>);
+}
+
+<span class="kw">static</span> <span class="ty">Node</span> <span class="op">*</span><span class="fn">relational</span>(<span class="kw">void</span>) {
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span> = <span class="fn">newNode</span>(<span class="st">"relational"</span>);
+    <span class="kw">if</span> (<span class="fn">isRelOp</span>()) {                     <span class="cm">/* ?le ?ge ?lt ?eq */</span>
+        <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>); <span class="fn">consume</span>();
+    } <span class="kw">else if</span> (<span class="fn">isOpDel</span>(<span class="st">"="</span>)) {         <span class="cm">/* first '=' of = = */</span>
+        <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>); <span class="fn">consume</span>();
+        <span class="kw">if</span> (!<span class="fn">isOpDel</span>(<span class="st">"="</span>)) <span class="fn">error</span>(<span class="st">"second '=' in '= ='"</span>);
+        <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>); <span class="fn">consume</span>();  <span class="cm">/* second '=' */</span>
+    } <span class="kw">else if</span> (<span class="fn">isOpDel</span>(<span class="st">";"</span>)) {
+        <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>); <span class="fn">consume</span>();  <span class="cm">/* the semicolon relational */</span>
+    } <span class="kw">else</span> <span class="fn">error</span>(<span class="st">"relational operator"</span>);
+    <span class="kw">return</span> <span class="id">n</span>;
+}<span class="file-label">parser.c:237-263</span></pre>
+
+<div class="callout bnf">
+  <strong>Why <code>isRelOp()</code> instead of <code>tk.id == OpTk</code>:</strong>
+  The lexer recognizes six <code>?</code>-operators (<code>?le ?ge ?lt ?gt ?ne ?eq</code>), but the
+  BNF's <code>&lt;relational&gt;</code> production lists only four. A bare <code>tk.id == OpTk</code>
+  test would also accept <code>?gt</code>, <code>?ne</code>, and even the expression operators
+  <code>**</code> / <code>//</code> in the comparison position — so <code>cond [ x ** 0 ]</code> would
+  parse instead of erroring. The explicit instance check matches the grammar exactly.
+</div>
+
+<p>
+  <code>= =</code> is two separate <code>OpDelTk("=")</code> tokens. The parser reads the first
+  <code>=</code>, stores it, then checks the second. Both are stored in the node because both
+  are semantic — they collectively represent the equality operator and a later phase needs to
+  know what the operator was. The <code>;</code> alternative is likewise a single stored
+  <code>OpDelTk</code>.
+</p>
+
+<!-- ══════════════════════════════════════════════════════ EXPRESSIONS -->
+<h3 id="parser-expr">Expression Rules — The Delay Technique</h3>
+
+<p>
+  The three expression nonterminals encode arithmetic precedence directly in the grammar structure.
+  No explicit precedence table is needed.
+</p>
+
+<div class="bnf-rule"><span class="bnf-lhs">&lt;exp&gt;</span><span class="bnf-arrow">→</span><span class="bnf-rhs"><span class="nt">&lt;M&gt;</span> <span class="kw">**</span> <span class="nt">&lt;exp&gt;</span> <span class="alt">|</span> <span class="nt">&lt;M&gt;</span> <span class="kw">//</span> <span class="nt">&lt;exp&gt;</span> <span class="alt">|</span> <span class="nt">&lt;M&gt;</span></span></div>
+<div class="bnf-rule"><span class="bnf-lhs">&lt;M&gt;</span><span class="bnf-arrow">→</span><span class="bnf-rhs"><span class="nt">&lt;N&gt;</span> <span class="kw">+</span> <span class="nt">&lt;M&gt;</span> <span class="alt">|</span> <span class="nt">&lt;N&gt;</span></span></div>
+<div class="bnf-rule"><span class="bnf-lhs">&lt;N&gt;</span><span class="bnf-arrow">→</span><span class="bnf-rhs"><span class="nt">&lt;R&gt;</span> <span class="kw">-</span> <span class="nt">&lt;N&gt;</span> <span class="alt">|</span> <span class="kw">-</span> <span class="nt">&lt;N&gt;</span> <span class="alt">|</span> <span class="nt">&lt;R&gt;</span></span></div>
+<div class="bnf-rule"><span class="bnf-lhs">&lt;R&gt;</span><span class="bnf-arrow">→</span><span class="bnf-rhs"><span class="kw">(</span> <span class="nt">&lt;exp&gt;</span> <span class="kw">)</span> <span class="alt">|</span> <span class="tk">identifier</span> <span class="alt">|</span> <span class="tk">integer</span></span></div>
+
+<p style="margin-top:14px">
+  Precedence is lowest-to-highest as you go deeper: <code>exp</code> handles <code>**</code>/<code>//</code>
+  (lowest), <code>M</code> handles <code>+</code>, <code>N</code> handles <code>-</code> (unary
+  and binary), <code>R</code> handles atoms and parenthesized sub-expressions (highest). A deeply
+  nested operand is evaluated first because it is deepest in the call stack.
+</p>
+
+<pre><span class="cm">/* exp — ** and // have lowest precedence among operators */</span>
+<span class="kw">static</span> <span class="ty">Node</span> <span class="op">*</span><span class="fn">expr</span>(<span class="kw">void</span>) {
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span> = <span class="fn">newNode</span>(<span class="st">"exp"</span>);
+    <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">M</span>());
+    <span class="kw">if</span> (<span class="fn">isOp</span>(<span class="st">"**"</span>) || <span class="fn">isOp</span>(<span class="st">"//"</span>)) {
+        <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>);  <span class="cm">/* store the operator */</span>
+        <span class="fn">consume</span>();
+        <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">expr</span>()); <span class="cm">/* right-recursive */</span>
+    }
+    <span class="kw">return</span> <span class="id">n</span>;
+}
+
+<span class="cm">/* N — handles both binary subtraction and unary negation */</span>
+<span class="kw">static</span> <span class="ty">Node</span> <span class="op">*</span><span class="fn">N</span>(<span class="kw">void</span>) {
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span> = <span class="fn">newNode</span>(<span class="st">"N"</span>);
+    <span class="kw">if</span> (<span class="fn">isOpDel</span>(<span class="st">"-"</span>)) {          <span class="cm">/* unary: - &lt;N&gt; */</span>
+        <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>); <span class="fn">consume</span>();
+        <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">N</span>());
+    } <span class="kw">else</span> {
+        <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">R</span>());       <span class="cm">/* read atom first */</span>
+        <span class="kw">if</span> (<span class="fn">isOpDel</span>(<span class="st">"-"</span>)) {      <span class="cm">/* binary: &lt;R&gt; - &lt;N&gt; */</span>
+            <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>); <span class="fn">consume</span>();
+            <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">N</span>());
+        }
+    }
+    <span class="kw">return</span> <span class="id">n</span>;
+}
+
+<span class="cm">/* R — base case: parenthesized expression, identifier, or integer */</span>
+<span class="kw">static</span> <span class="ty">Node</span> <span class="op">*</span><span class="fn">R</span>(<span class="kw">void</span>) {
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">n</span> = <span class="fn">newNode</span>(<span class="st">"R"</span>);
+    <span class="kw">if</span> (<span class="fn">isOpDel</span>(<span class="st">"("</span>)) {
+        <span class="fn">consume</span>();
+        <span class="fn">addChild</span>(<span class="id">n</span>, <span class="fn">expr</span>());       <span class="cm">/* recurse back into full expression */</span>
+        <span class="kw">if</span> (!<span class="fn">isOpDel</span>(<span class="st">")"</span>)) <span class="fn">error</span>(<span class="st">"')'"</span>);
+        <span class="fn">consume</span>();
+    } <span class="kw">else if</span> (<span class="id">tk</span>.<span class="id">id</span> == <span class="id">IDTk</span>) {
+        <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>); <span class="fn">consume</span>();
+    } <span class="kw">else if</span> (<span class="id">tk</span>.<span class="id">id</span> == <span class="id">IntTk</span>) {
+        <span class="fn">addToken</span>(<span class="id">n</span>, <span class="id">tk</span>); <span class="fn">consume</span>();
+    } <span class="kw">else</span> <span class="fn">error</span>(<span class="st">"identifier, integer, or '('"</span>);
+    <span class="kw">return</span> <span class="id">n</span>;
+}<span class="file-label">parser.c:258-322</span></pre>
+
+<div class="callout tip">
+  <strong>The "delay technique":</strong>
+  Each expression function calls into the next-higher-precedence function first (e.g., <code>expr</code>
+  calls <code>M()</code> before checking for <code>**</code>). This means the left operand is
+  always fully parsed before the operator is consumed. This is the standard LL grammar technique
+  for handling operators without left recursion.
+</div>
+
+<!-- ══════════════════════════════════════════════════════ PARSER ENTRY -->
+<h4>parser() — the auxiliary entry point</h4>
+<pre><span class="kw">void</span> <span class="fn">parser</span>(<span class="kw">void</span>)
+{
+    <span class="id">tk</span> = <span class="fn">getNextToken</span>();      <span class="cm">/* prime the lookahead */</span>
+    <span class="ty">Node</span> <span class="op">*</span><span class="id">tree</span> = <span class="fn">program_rule</span>();
+    <span class="kw">if</span> (<span class="id">tk</span>.<span class="id">id</span> != <span class="id">EOFTk</span>)
+        <span class="fn">error</span>(<span class="st">"end of input"</span>);   <span class="cm">/* trailing garbage */</span>
+    <span class="fn">printTree</span>(<span class="id">tree</span>, <span class="nu">0</span>);
+    <span class="fn">freeTree</span>(<span class="id">tree</span>);
+}<span class="file-label">parser.c:325-333</span></pre>
+
+<p>
+  This matches the doc's "auxiliary function" pattern exactly: get first token, call the start
+  nonterminal (<code>program_rule</code>), then verify <code>EOFTk</code>. After verifying the
+  full tree is correct it prints then frees — the print must come first because freeing first
+  would invalidate all the pointers.
+</p>
+
+<!-- ══════════════════════════════════════════════════════ P2.C -->
+<h2 id="p2c">P2.c — The Driver</h2>
+
+<pre><span class="kw">int</span> <span class="fn">main</span>(<span class="kw">int</span> <span class="id">argc</span>, <span class="kw">char</span> <span class="op">*</span><span class="id">argv</span>[])
+{
+    <span class="ty">FILE</span> <span class="op">*</span><span class="id">in</span> = <span class="kw">NULL</span>;
+    <span class="kw">int</span>   <span class="id">lexOnly</span>  = <span class="nu">0</span>;
+    <span class="kw">int</span>   <span class="id">argStart</span> = <span class="nu">1</span>;
+
+    <span class="kw">if</span> (<span class="id">argc</span> > <span class="nu">1</span> &amp;&amp; <span class="fn">strcmp</span>(<span class="id">argv</span>[<span class="nu">1</span>], <span class="st">"-l"</span>) == <span class="nu">0</span>) {
+        <span class="id">lexOnly</span>  = <span class="nu">1</span>;     <span class="cm">/* -l flag: run P1-style token dump */</span>
+        <span class="id">argStart</span> = <span class="nu">2</span>;
+    }
+
+    <span class="cm">/* open file or fall back to stdin */</span>
+    <span class="kw">if</span> (<span class="id">argc</span> == <span class="id">argStart</span>)
+        <span class="id">in</span> = <span class="id">stdin</span>;
+    <span class="kw">else</span> {
+        <span class="kw">char</span> <span class="id">infile</span>[<span class="nu">512</span>];
+        <span class="fn">snprintf</span>(<span class="id">infile</span>, <span class="kw">sizeof</span>(<span class="id">infile</span>), <span class="st">"%s.ext"</span>, <span class="id">argv</span>[<span class="id">argStart</span>]);
+        <span class="id">in</span> = <span class="fn">fopen</span>(<span class="id">infile</span>, <span class="st">"r"</span>);
+    }
+
+    <span class="fn">lexer_init</span>(<span class="id">in</span>);
+
+    <span class="kw">if</span> (<span class="id">lexOnly</span>) <span class="fn">runLexer</span>();
+    <span class="kw">else</span>         <span class="fn">parser</span>();
+
+    <span class="kw">if</span> (<span class="id">in</span> != <span class="id">stdin</span>) <span class="fn">fclose</span>(<span class="id">in</span>);
+    <span class="kw">return</span> <span class="nu">0</span>;
+}<span class="file-label">P2.c</span></pre>
+
+<p>
+  The driver does three things only: file handling, mode selection, and delegation. The
+  <code>-l</code> flag is a backward-compatibility shim to run the P1 lexer dump (useful for
+  debugging lexer issues without invoking the parser). The <code>.ext</code> suffix is appended
+  automatically so you can type <code>./P2 test_good1</code> instead of <code>./P2 test_good1.ext</code>.
+</p>
+
+<!-- ══════════════════════════════════════════════════════ CONCEPTS -->
+<hr>
+
+<h2 id="ll1">Why LL(1)?</h2>
+
+<p>
+  LL(1) means the parser reads input Left-to-right, constructs a Leftmost derivation, using 1
+  token of lookahead. The grammar meets LL(1) requirements because:
+</p>
+<ol style="margin:10px 0 16px 22px;line-height:2">
+  <li><strong>No left recursion</strong> — all recursive calls to the same nonterminal are on
+      the <em>right</em> side (e.g., <code>&lt;varList&gt; → id = int &lt;varList&gt;</code>).</li>
+  <li><strong>Disjoint FIRST sets</strong> — for every nonterminal with multiple productions,
+      the leading tokens of each alternative are unique. For example,
+      <code>FIRST(scan identifier :) = {scan}</code> is disjoint from
+      <code>FIRST(output &lt;exp&gt; :) = {output}</code>.</li>
+  <li><strong>FIRST / FOLLOW disjoint for ε-productions</strong> — nonterminals that can derive
+      empty (<code>&lt;vars&gt;</code>, <code>&lt;varList&gt;</code>, <code>&lt;mStat&gt;</code>)
+      have their FIRST sets disjoint from their FOLLOW sets, so the parser always knows whether
+      to take the empty branch.</li>
+</ol>
+
+<h2 id="lookahead">The Lookahead Pattern</h2>
+
+<p>
+  The global <code>static Token tk</code> is the single lookahead. The rule throughout the
+  entire parser is: <strong>tk always holds the next unconsumed token</strong>.
+</p>
+
+<div class="flow-row">
+  <div class="flow-box" style="background:rgba(137,180,250,.1)">parser() calls getNextToken()</div>
+  <div style="color:var(--muted)">→</div>
+  <div class="flow-box">tk = first token</div>
+  <div style="color:var(--muted)">→</div>
+  <div class="flow-box">call program_rule()</div>
+  <div style="color:var(--muted)">→</div>
+  <div class="flow-box">check tk, consume(), recurse…</div>
+</div>
+
+<p style="margin-top:14px">
+  When a function returns, it has left <code>tk</code> pointing at the token <em>after</em>
+  everything it consumed. The caller can immediately inspect <code>tk</code> to decide what
+  comes next. No buffering, no token stack — the C call stack itself is the parse stack
+  (this is what the doc means when it says function calls are activation record pushes).
+</p>
+
+<h2 id="tree-gen">Tree Generation Strategy</h2>
+
+<p>
+  The doc separates tokens into two categories and the code follows this exactly:
+</p>
+
+<table>
+  <tr><th>Token Type</th><th>Treatment</th><th>Example</th></tr>
+  <tr><td><strong>Structural</strong></td><td>Consumed and discarded (not stored in node)</td><td><code>go exit int { } [ ] ( ) : =</code></td></tr>
+  <tr><td><strong>Semantic</strong></td><td>Stored via <code>addToken(n, tk)</code></td><td><code>IDTk IntTk OpTk OpDelTk(+,-)</code></td></tr>
+</table>
+
+<p>
+  This means a later compiler phase (semantic analysis, code generation) has everything it needs
+  in the tree without needing to re-read the source. The identifier name, the integer value,
+  and the operator are all attached to the relevant node.
+</p>
+
+<!-- ══════════════════════════════════════════════════════ FLOW -->
+<h2 id="flow">End-to-End Flow Example</h2>
+
+<p>Given the minimal program <code>test_good1.ext</code>:</p>
+<pre><span class="kw">go</span>
+{ <span class="kw">output</span> <span class="nu">1</span> :
+}
+<span class="kw">exit</span></pre>
+
+<p>Execution path through the code:</p>
+
+<table>
+  <tr><th>Step</th><th>Function</th><th>Action</th></tr>
+  <tr><td>1</td><td><code>main()</code></td><td>Opens file, calls <code>lexer_init()</code>, calls <code>parser()</code></td></tr>
+  <tr><td>2</td><td><code>parser()</code></td><td><code>tk = getNextToken()</code> → <code>KW_tk "go"</code></td></tr>
+  <tr><td>3</td><td><code>program_rule()</code></td><td>Sees <code>go</code> → consumes it, calls <code>vars()</code></td></tr>
+  <tr><td>4</td><td><code>vars()</code></td><td><code>tk</code> is <code>OpDelTk "{"</code> (not <code>int</code>) → returns NULL (empty)</td></tr>
+  <tr><td>5</td><td><code>program_rule()</code></td><td>Calls <code>block()</code></td></tr>
+  <tr><td>6</td><td><code>block()</code></td><td>Sees <code>{</code> → consumes, calls <code>vars()</code> (→ NULL), calls <code>stats()</code></td></tr>
+  <tr><td>7</td><td><code>stats()</code></td><td>Calls <code>stat()</code></td></tr>
+  <tr><td>8</td><td><code>stat()</code></td><td>Sees <code>output</code> → calls <code>print()</code></td></tr>
+  <tr><td>9</td><td><code>print()</code></td><td>Consumes <code>output</code>, calls <code>expr()</code></td></tr>
+  <tr><td>10</td><td><code>expr()</code> → <code>M()</code> → <code>N()</code> → <code>R()</code></td><td>Sees <code>IntTk "1"</code> → stores it, consumes, returns up chain</td></tr>
+  <tr><td>11</td><td><code>print()</code></td><td>Back from <code>expr()</code>, sees <code>:</code> → consumes</td></tr>
+  <tr><td>12</td><td><code>stats()</code> → <code>mStat()</code></td><td><code>tk</code> is <code>OpDelTk "}"</code> — not a stat FIRST → empty, returns</td></tr>
+  <tr><td>13</td><td><code>block()</code></td><td>Sees <code>}</code> → consumes, returns</td></tr>
+  <tr><td>14</td><td><code>program_rule()</code></td><td>Sees <code>exit</code> → consumes, returns tree root</td></tr>
+  <tr><td>15</td><td><code>parser()</code></td><td>Verifies <code>EOFTk</code>, calls <code>printTree()</code>, then <code>freeTree()</code></td></tr>
+</table>
+
+<p style="margin-top: 16px">The tree printed to stdout looks like:</p>
+<pre>program
+  block
+    stats
+      stat
+        print
+          exp
+            M
+              N
+                R #:1:2
+      mStat</pre>
+
+<hr>
+<p style="color: var(--muted); font-size: 13px; text-align: center; padding: 20px 0;">
+  CS 4880 Compiler Design · P2 Code Walkthrough · Generated 2026-04-28
+</p>
+
+</main>
+</body>
+</html>
